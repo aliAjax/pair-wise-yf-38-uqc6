@@ -34,6 +34,9 @@ python3 app.py --db ./data.db --port 8304
 - `GET /api/entities/<id>`：读取对象当前版本。
 - `POST /api/entities/<id>/actions`：提交`{"action":"动作名","data":{...},"expected_version":数字}`。
 - `GET /api/audit`：读取审计记录。
+- `GET /api/audit/verify`：校验审计指纹链，仅`admin`和`auditor`可访问。返回`{"intact": 是否完好, "count": 链尾计数, "stored_count": 实际记录数, "first_bad_seq": 首个异常编号或null}`。改动、删除或调序记录都会落到断点；末尾少一条由链尾计数发现。
+
+审计记录按写入顺序串成哈希链：每条带`seq`、`prev_hash`、`hash`，链尾摘要和计数存在独立的`audit_chain`表。写入在同一事务内取链尾、算摘要、留链尾，并发写自动排成单链；启动时自动为旧记录补算指纹。
 
 请求身份通过`X-User-Id`和`X-Role`请求头传入。创建和动作的可执行角色由规则引擎控制。
 
