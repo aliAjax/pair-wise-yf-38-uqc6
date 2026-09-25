@@ -83,6 +83,8 @@ def create_handler(service, rules, static_dir):
                     index = os.path.join(static_dir, "index.html")
                     with open(index, "r", encoding="utf-8") as handle:
                         return self._send_html(200, handle.read())
+                if parts == ["api", "audit", "verify"]:
+                    return self._send(200, service.verify_audit(self._actor()))
                 if parts == ["api", "audit"]:
                     return self._send(200, {"items": service.audit_log()})
                 if len(parts) == 3 and parts[:2] == ["api", "entities"]:

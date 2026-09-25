@@ -11,6 +11,7 @@
 - `src/service.py`：用例编排、幂等处理、版本控制和审计写入。
 - `src/http_api.py`：HTTP路由、请求解析和统一错误响应。
 - `src/audit.py`：实体操作审计时间线。
+- `src/chain.py`：审计指纹链的摘要计算。
 - `static/index.html`：最小演示页面。
 - `tests/`：完整流程、规则和失败场景测试。
 
@@ -34,8 +35,15 @@ python3 app.py --db ./data.db --port 8304
 - `GET /api/entities/<id>`：读取对象当前版本。
 - `POST /api/entities/<id>/actions`：提交`{"action":"动作名","data":{...},"expected_version":数字}`。
 - `GET /api/audit`：读取审计记录。
+- `GET /api/audit/verify`：校验审计指纹链（仅 `admin`/`auditor`），返回链是否完好、记录数、链尾计数与首个异常编号。
 
 请求身份通过`X-User-Id`和`X-Role`请求头传入。创建和动作的可执行角色由规则引擎控制。
+
+## 审计指纹链
+
+每条审计记录都带有连续序号、上一条摘要和本条 SHA-256 摘要，`audit_chain` 单行表记录链尾序号与摘要。写账在同一事务（`BEGIN IMMEDIATE`）中取得链尾摘要与计数、计算本条指纹、插入记录并更新链尾，因此并发写账会串行成一条单链。旧库启动时自动迁移，历史记录按 `id` 顺序补算后接续。
+
+校验时按序号重放整条链：改动、删除或调序都会落到首个断点编号；末尾缺失由链尾计数发现。原有的 `GET /api/audit` 查询不受影响。
 
 ## 测试
 

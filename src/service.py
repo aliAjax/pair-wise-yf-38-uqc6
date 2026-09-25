@@ -1,8 +1,10 @@
 from uuid import uuid4
 
 from .audit import AuditTrail
-from .domain import ConflictError, NotFoundError
+from .domain import ConflictError, NotFoundError, PermissionDenied
 from .rules import RuleEngine
+
+VERIFY_ROLES = ("admin", "auditor")
 
 
 class DomainService:
@@ -71,3 +73,8 @@ class DomainService:
 
     def audit_log(self, entity_id=None):
         return self.repository.list_audit(entity_id=entity_id)
+
+    def verify_audit(self, actor):
+        if actor.role not in VERIFY_ROLES:
+            raise PermissionDenied("only admin or auditor may verify the audit chain")
+        return self.repository.verify_chain()
